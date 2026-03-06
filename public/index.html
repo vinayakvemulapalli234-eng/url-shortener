@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>SnapURL — URL Shortener</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>⚡ SnapURL</h1>
+    <p class="subtitle">Shorten. Share. Track.</p>
+
+    <div class="tabs">
+      <button class="tab active" onclick="showTab('login')">Login</button>
+      <button class="tab" onclick="showTab('register')">Register</button>
+    </div>
+
+    <div id="login" class="form-box">
+      <input type="email" id="login-email" placeholder="Email" />
+      <input type="password" id="login-password" placeholder="Password" />
+      <button onclick="login()">Login</button>
+      <p id="login-msg" class="msg"></p>
+    </div>
+
+    <div id="register" class="form-box hidden">
+      <input type="email" id="reg-email" placeholder="Email" />
+      <input type="password" id="reg-password" placeholder="Password (min 6 chars)" />
+      <button onclick="register()">Create Account</button>
+      <p id="reg-msg" class="msg"></p>
+    </div>
+  </div>
+
+  <script>
+    function showTab(tab) {
+      document.getElementById('login').classList.toggle('hidden', tab !== 'login');
+      document.getElementById('register').classList.toggle('hidden', tab !== 'register');
+      document.querySelectorAll('.tab').forEach((t, i) => {
+        t.classList.toggle('active', (i === 0 && tab === 'login') || (i === 1 && tab === 'register'));
+      });
+    }
+
+    async function login() {
+      const email = document.getElementById('login-email').value;
+      const password = document.getElementById('login-password').value;
+      const msg = document.getElementById('login-msg');
+
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        window.location.href = '/dashboard.html';
+      } else {
+        msg.textContent = data.error;
+        msg.style.color = 'red';
+      }
+    }
+
+    async function register() {
+      const email = document.getElementById('reg-email').value;
+      const password = document.getElementById('reg-password').value;
+      const msg = document.getElementById('reg-msg');
+
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+
+      msg.textContent = data.message || data.error;
+      msg.style.color = data.message ? 'green' : 'red';
+    }
+  </script>
+</body>
+</html>

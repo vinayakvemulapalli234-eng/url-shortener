@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — SnapURL</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <nav>
+    <h2>⚡ SnapURL</h2>
+    <button onclick="logout()">Logout</button>
+  </nav>
+
+  <div class="container">
+    <div class="shorten-box">
+      <h2>Shorten a URL</h2>
+      <div class="input-row">
+        <input type="url" id="long-url" placeholder="https://example.com/very-long-url" />
+        <button onclick="shortenUrl()">Shorten</button>
+      </div>
+      <p id="result" class="msg"></p>
+    </div>
+
+    <h2>Your Links</h2>
+    <div id="urls-list"></div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    if (!token) window.location.href = '/';
+
+    async function shortenUrl() {
+      const long_url = document.getElementById('long-url').value;
+      const result = document.getElementById('result');
+
+      const res = await fetch('/api/url/shorten', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ long_url })
+      });
+      const data = await res.json();
+
+      if (data.short_url) {
+        result.innerHTML = `✅ <a href="${data.short_url}" target="_blank">${data.short_url}</a>
+          <button onclick="navigator.clipboard.writeText('${data.short_url}')">📋 Copy</button>`;
+        loadUrls();
+      } else {
+        result.textContent = data.error;
+        result.style.color = 'red';
+      }
+    }
+
+    async function loadUrls() {
+      const res = await fetch('/api/url/my-urls', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const urls = await res.json();
+      const list = document.getElementById('urls-list');
+
+      if (!urls.length) {
+        list.innerHTML = '<p>No links yet. Shorten your first URL above!</p>';
+        return;
+      }
+
+      list.innerHTML = urls.map(url => `
+        <div class="url-card">
+          <div class="url-info">
+            <a href="/${url.short_code}" target="_blank">
+              ${window.location.origin}/${url.short_code}
+            </a>
+            <span class="long-url">${url.long_url}</span>
+            <span class="date">${new Date(url.created_at).toLocaleDateString()}</span>
+          </div>
+          <div class="url-stats">
+            <span class="clicks">🖱️ ${url.clicks[0]?.count || 0} clicks</span>
+            <button onclick="navigator.clipboard.writeText('${window.location.origin}/${url.short_code}')">📋</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function logout() {
+      localStorage.removeItem('token');
+      window.location.href = '/';
+    }
+
+    loadUrls();
+  </script>
+</body>
+</html>
